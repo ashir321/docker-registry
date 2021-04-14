@@ -1,0 +1,55 @@
+version: '3'
+services:
+#Registry
+  registry:
+    image: registry:2
+    restart: always
+    container_name: myregistry
+    ports:
+     - "5000:5000"
+    environment:
+     - REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt
+     - REGISTRY_HTTP_TLS_KEY=/certs/domain.key
+     - REGISTRY_AUTH=htpasswd
+     - REGISTRY_AUTH_HTPASSWD_REALM=Registry-Realm
+     - REGISTRY_AUTH_HTPASSWD_PATH=/auth/registry.passwd
+     - REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=/var/lib/registry
+     - REGISTRY_STORAGE_DELETE_ENABLED=true
+     - REGISTRY_HTTP_HEADERS_X-Content-Type-Options=[nosniff]
+     - REGISTRY_HTTP_HEADERS_Access-Control-Allow-Origin=['http://localhost']
+     - REGISTRY_HTTP_HEADERS_Access-Control-Allow-Methods=['HEAD', 'GET', 'OPTIONS', 'DELETE']
+     - REGISTRY_HTTP_HEADERS_Access-Control-Allow-Headers=['Authorization', 'Accept']
+     - REGISTRY_HTTP_HEADERS_Access-Control-Max-Age=[1728000]
+     - REGISTRY_HTTP_HEADERS_Access-Control-Expose-Headers=['Docker-Content-Digest']
+     - REGISTRY_HTTP_HEADERS_Access-Control-Allow-Credentials=['true']
+    volumes:
+     - "./docker_data/images/:/var/lib/registry/"
+     - "./docker_data/certs/:/certs/"
+     - "./docker_data/auth:/auth"
+
+    networks:
+      - registry-ui-net
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    restart: unless-stopped
+    tty: true
+    environment:
+      - REGISTRY_TITLE=SK WORLD Private Image Registry
+      - DELETE_IMAGES=true
+      - REGISTRY_DOMAIN=https://registry.sk.world/
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d/:/etc/nginx/conf.d/
+      - ./docker_data/certs/:/etc/nginx/ssl/
+      - ./nginx/html/:/var/www/html/
+    networks:
+      - registry-ui-net
+
+
+
+networks:
+  registry-ui-net:
